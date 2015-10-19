@@ -37,8 +37,9 @@ int main(int argc, char** argv){
   riemann_client_t *c;
   riemann_message_t *req, *res;
   riemann_event_t *event;
+  int after_wait = 0;
 
-  r = sd_journal_open(&j, SD_JOURNAL_LOCAL_ONLY | SD_JOURNAL_SYSTEM);
+  r = sd_journal_open(&j, 0);
   assert(r == 0);
   
   if(argc != 3){
@@ -53,9 +54,14 @@ int main(int argc, char** argv){
   for (;;)  {
     const void *field; size_t len;
     r = sd_journal_next(j); assert (r >= 0);
-    if (r == 0) { 
+    if (r == 0) { // if no more log available, wait for new ones
       r = sd_journal_wait(j, (uint64_t) -1); 
-      assert (r >= 0); continue; 
+      assert (r >= 0); 
+      after_wait = 1;
+      continue; 
+    }
+    else if (!after_wait){ // skip all logs before the first wait
+      continue; 
     }
     
     event = riemann_event_create(RIEMANN_EVENT_FIELD_NONE);
