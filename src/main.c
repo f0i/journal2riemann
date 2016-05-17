@@ -42,12 +42,23 @@ int main(int argc, char** argv){
   r = sd_journal_open(&j, 0);
   assert(r == 0);
   
-  if(argc != 3){
-    fprintf(stderr,"usage: journal2riemann 127.0.0.1 5555\n"); 
+  if(argc != 3 && argc != 6){
+    fprintf(stderr,"usage: journal2riemann <host> <port> [<ca-file> <cert-file> <key-file>]\n"); 
+    fprintf(stderr,"example: journal2riemann 127.0.0.1 5555\n"); 
     exit(1);
   }
   long port = strtol(argv[2],&end,10);
-  c = riemann_client_create (RIEMANN_CLIENT_TCP, argv[1], port);
+  if(argc >= 6){
+    c = riemann_client_create (
+        RIEMANN_CLIENT_TLS, argv[1], port,
+        RIEMANN_CLIENT_OPTION_TLS_CA_FILE, argv[3],
+        RIEMANN_CLIENT_OPTION_TLS_CERT_FILE, argv[4],
+        RIEMANN_CLIENT_OPTION_TLS_KEY_FILE, argv[5],
+        RIEMANN_CLIENT_OPTION_TLS_HANDSHAKE_TIMEOUT, 10000,
+        RIEMANN_CLIENT_OPTION_NONE);
+  }else{
+    c = riemann_client_create (RIEMANN_CLIENT_TCP, argv[1], port);
+  }
 
   r = sd_journal_seek_tail(j);
   assert(r == 0);
